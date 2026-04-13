@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WAGER.GG — Skill-Based Wagering Platform</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #08080D; font-family: 'Space Grotesk', sans-serif; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes glow { 0%,100% { box-shadow: 0 0 20px #4ADE8022; } 50% { box-shadow: 0 0 40px #4ADE8044; } }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #2A2A3A; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const GAMES = [
+      { id: "warzone", name: "Warzone", icon: "\u{1F3AF}", color: "#4ADE80", players: "12.4K online" },
+      { id: "fortnite", name: "Fortnite", icon: "\u{1F3D7}\uFE0F", color: "#A78BFA", players: "8.7K online" },
+      { id: "valorant", name: "Valorant", icon: "\u2694\uFE0F", color: "#F87171", players: "15.2K online" },
+      { id: "cs2", name: "CS2", icon: "\u{1F4A5}", color: "#FBBF24", players: "22.1K online" },
+      { id: "dota2", name: "Dota 2", icon: "\u{1F6E1}\uFE0F", color: "#38BDF8", players: "6.3K online" },
+    ];
+
+    const WAGER_AMOUNTS = [5, 10, 25, 50, 100];
+
+    const LEAGUES = [
+      { name: "Bronze League", range: "0 - 999 SR", color: "#CD7F32", icon: "\u{1F949}" },
+      { name: "Silver League", range: "1,000 - 1,499 SR", color: "#C0C0C0", icon: "\u{1F948}" },
+      { name: "Gold League", range: "1,500 - 1,999 SR", color: "#FFD700", icon: "\u{1F947}" },
+      { name: "Diamond League", range: "2,000 - 2,499 SR", color: "#B9F2FF", icon: "\u{1F48E}" },
+      { name: "Champion League", range: "2,500+ SR", color: "#FF6B6B", icon: "\u{1F3C6}" },
+    ];
+
+    const LEADERBOARD = [
+      { rank: 1, name: "AceDestroyer", sr: 2847, earnings: "$12,430", wins: 342, losses: 89, game: "valorant" },
+      { rank: 2, name: "PhantomX", sr: 2791, earnings: "$10,855", wins: 298, losses: 95, game: "cs2" },
+      { rank: 3, name: "NightOwl_", sr: 2734, earnings: "$9,210", wins: 267, losses: 102, game: "warzone" },
+      { rank: 4, name: "ColdBloodKing", sr: 2698, earnings: "$8,445", wins: 251, losses: 88, game: "valorant" },
+      { rank: 5, name: "xVelocity", sr: 2651, earnings: "$7,920", wins: 234, losses: 97, game: "fortnite" },
+      { rank: 6, name: "ShadowCaster", sr: 2623, earnings: "$7,115", wins: 219, losses: 91, game: "cs2" },
+      { rank: 7, name: "TurboFrag", sr: 2589, earnings: "$6,780", wins: 203, losses: 85, game: "warzone" },
+      { rank: 8, name: "IcePickRush", sr: 2544, earnings: "$5,990", wins: 194, losses: 99, game: "dota2" },
+      { rank: 9, name: "BlazeRunner", sr: 2511, earnings: "$5,340", wins: 187, losses: 104, game: "fortnite" },
+      { rank: 10, name: "QuantumLeap", sr: 2503, earnings: "$5,100", wins: 181, losses: 93, game: "valorant" },
+    ];
+
+    const OPPONENTS = [
+      { name: "xNightfury", rank: "Diamond II", record: "142-89", rating: 1847, winRate: "61%", avatar: "\u{1F525}" },
+      { name: "Clutch_God99", rank: "Diamond III", record: "201-134", rating: 1823, winRate: "60%", avatar: "\u26A1" },
+      { name: "silentSn1per", rank: "Diamond I", record: "98-61", rating: 1862, winRate: "62%", avatar: "\u{1F3AF}" },
+    ];
+
+    const LIVE_MATCHES = [
+      { p1: "DarkMatter", p2: "StormBlade", game: "Valorant", wager: 50, time: "12:34" },
+      { p1: "GhostRecon", p2: "ViperKing", game: "CS2", wager: 25, time: "08:17" },
+      { p1: "NeonRush", p2: "IceWolf", game: "Warzone", wager: 100, time: "22:05" },
+      { p1: "BulletProof", p2: "SkyHunter", game: "Fortnite", wager: 10, time: "05:42" },
+    ];
+
+    const RECENT_RESULTS = [
+      { p1: "AceDestroyer", p2: "ColdBlood", winner: "AceDestroyer", game: "Valorant", wager: 50, time: "2 min ago" },
+      { p1: "PhantomX", p2: "NightOwl_", winner: "PhantomX", game: "CS2", wager: 100, time: "5 min ago" },
+      { p1: "TurboFrag", p2: "BlazeRunner", winner: "BlazeRunner", game: "Warzone", wager: 25, time: "8 min ago" },
+    ];
+
+    function WagerPlatform() {
+      const [selectedGame, setSelectedGame] = useState("warzone");
+      const [wager, setWager] = useState(10);
+      const [tab, setTab] = useState("play");
+      const [view, setView] = useState("home");
+      const [matchedOpponent, setMatchedOpponent] = useState(null);
+      const [searching, setSearching] = useState(false);
+      const [bannerVisible, setBannerVisible] = useState(true);
+
+      const startMatchmaking = () => {
+        setView("matchmaking");
+        setSearching(true);
+        setTimeout(() => {
+          setMatchedOpponent(OPPONENTS[Math.floor(Math.random() * OPPONENTS.length)]);
+          setSearching(false);
+        }, 2500);
+      };
+
+      const game = GAMES.find((g) => g.id === selectedGame);
+
+      const Pill = ({ children, active, onClick, color }) => (
+        <button onClick={onClick} style={{
+          padding: "8px 16px", borderRadius: "20px", border: "none", cursor: "pointer",
+          background: active ? (color || "#E4E4E7") : "#12121A",
+          color: active ? "#08080D" : "#71717A",
+          fontWeight: 600, fontSize: "12px", transition: "all 0.2s", fontFamily: "inherit",
+        }}>{children}</button>
+      );
+
+      return (
+        <div style={{ minHeight: "100vh", background: "#08080D", color: "#E4E4E7", fontFamily: "'Space Grotesk', sans-serif", position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "fixed", top: "-300px", left: "50%", transform: "translateX(-50%)", width: "800px", height: "500px", background: "radial-gradient(ellipse, " + game.color + "10, transparent 70%)", pointerEvents: "none", transition: "background 0.8s ease" }} />
+
+          {bannerVisible && (
+            <div style={{ background: "linear-gradient(90deg, " + game.color + "22, #12121A, " + game.color + "22)", borderBottom: "1px solid " + game.color + "33", padding: "10px 24px", display: "flex", justifyContent: "center", alignItems: "center", gap: "12px", fontSize: "12px", position: "relative", zIndex: 10 }}>
+              <span style={{ color: game.color, fontWeight: 700 }}>{"\u26A1"} CONCEPT DEMO</span>
+              <span style={{ color: "#71717A" }}>{"\u2014"}</span>
+              <span style={{ color: "#A1A1AA" }}>WAGER.GG is a skill-based wagering platform concept. This is an interactive prototype, not a live product.</span>
+              <button onClick={() => setBannerVisible(false)} style={{ position: "absolute", right: "16px", background: "none", border: "none", color: "#52525B", cursor: "pointer", fontSize: "16px", fontFamily: "inherit" }}>{"\u00D7"}</button>
+            </div>
+          )}
+
+          <nav style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 24px", borderBottom: "1px solid #1A1A24", position: "relative", zIndex: 5, background: "#08080D" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div style={{ width: "34px", height: "34px", borderRadius: "8px", background: "linear-gradient(135deg, " + game.color + ", " + game.color + "88)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", fontWeight: 800, color: "#08080D", transition: "background 0.3s", animation: "glow 3s ease infinite" }}>W</div>
+              <span style={{ fontWeight: 800, fontSize: "20px", letterSpacing: "-0.5px" }}>WAGER.GG</span>
+              <span style={{ fontSize: "9px", fontWeight: 700, padding: "2px 6px", borderRadius: "4px", background: game.color + "22", color: game.color, letterSpacing: "1px" }}>BETA</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "16px", fontSize: "13px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#4ADE80", fontSize: "11px" }}>
+                <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#4ADE80", animation: "pulse 2s infinite" }} />
+                <span>42,847 online</span>
+              </div>
+              <div style={{ background: "#12121A", borderRadius: "20px", padding: "6px 14px", display: "flex", alignItems: "center", gap: "6px", border: "1px solid #1E1E2A" }}>
+                <span style={{ fontSize: "11px", color: "#71717A" }}>Balance:</span>
+                <span style={{ color: "#4ADE80", fontWeight: 700 }}>$247.50</span>
+              </div>
+              <div style={{ width: "34px", height: "34px", borderRadius: "50%", background: "linear-gradient(135deg, #6366F1, #A78BFA)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: 700, cursor: "pointer" }}>G</div>
+            </div>
+          </nav>
+
+          <div style={{ display: "flex", gap: "4px", padding: "12px 24px", borderBottom: "1px solid #1A1A24", background: "#08080D", position: "relative", zIndex: 5 }}>
+            {[{ id: "play", label: "\u2694\uFE0F Play" }, { id: "leagues", label: "\u{1F3C5} Leagues" }, { id: "leaderboard", label: "\u{1F3C6} Leaderboard" }, { id: "profile", label: "\u{1F464} Profile" }].map(t => (
+              <Pill key={t.id} active={tab === t.id} onClick={() => { setTab(t.id); setView("home"); }} color={game.color}>{t.label}</Pill>
+            ))}
+          </div>
+
+          <div style={{ padding: "20px 24px", maxWidth: "800px", margin: "0 auto", position: "relative", zIndex: 1 }}>
+
+            {tab === "play" && view === "home" && (
+              <div style={{ animation: "slideUp 0.3s ease" }}>
+                <div style={{ background: "#0E0E16", borderRadius: "12px", padding: "14px 18px", border: "1px solid #1A1A24", marginBottom: "24px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#EF4444", animation: "pulse 1.5s infinite" }} />
+                      <span style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: "#EF4444" }}>Live Matches</span>
+                    </div>
+                    <span style={{ fontSize: "11px", color: "#52525B" }}>{LIVE_MATCHES.length} active</span>
+                  </div>
+                  <div style={{ display: "flex", gap: "8px", overflowX: "auto", paddingBottom: "4px" }}>
+                    {LIVE_MATCHES.map((m, i) => (
+                      <div key={i} style={{ minWidth: "180px", background: "#12121A", borderRadius: "8px", padding: "10px 12px", border: "1px solid #1E1E2A", fontSize: "11px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                          <span style={{ color: "#71717A" }}>{m.game}</span>
+                          <span style={{ color: "#EF4444", fontFamily: "monospace" }}>{m.time}</span>
+                        </div>
+                        <div style={{ fontWeight: 600, fontSize: "12px" }}>{m.p1} <span style={{ color: "#52525B" }}>vs</span> {m.p2}</div>
+                        <div style={{ color: "#4ADE80", fontWeight: 700, marginTop: "4px" }}>${m.wager} wager</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ background: "#0E0E16", borderRadius: "12px", padding: "14px 18px", border: "1px solid #1A1A24", marginBottom: "24px" }}>
+                  <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: "#71717A", marginBottom: "10px" }}>Recent Results</p>
+                  {RECENT_RESULTS.map((r, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < RECENT_RESULTS.length - 1 ? "1px solid #1A1A24" : "none", fontSize: "12px" }}>
+                      <div>
+                        <span style={{ color: r.winner === r.p1 ? "#4ADE80" : "#A1A1AA", fontWeight: r.winner === r.p1 ? 700 : 400 }}>{r.p1}</span>
+                        <span style={{ color: "#52525B" }}> vs </span>
+                        <span style={{ color: r.winner === r.p2 ? "#4ADE80" : "#A1A1AA", fontWeight: r.winner === r.p2 ? 700 : 400 }}>{r.p2}</span>
+                      </div>
+                      <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                        <span style={{ color: "#71717A" }}>{r.game}</span>
+                        <span style={{ color: "#4ADE80", fontWeight: 700 }}>${r.wager}</span>
+                        <span style={{ color: "#52525B", fontSize: "10px" }}>{r.time}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <p style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "2px", color: "#52525B", marginBottom: "10px", fontWeight: 700 }}>Select Game</p>
+                <div style={{ display: "flex", gap: "6px", marginBottom: "24px", flexWrap: "wrap" }}>
+                  {GAMES.map((g) => (
+                    <button key={g.id} onClick={() => setSelectedGame(g.id)} style={{ flex: "1 1 80px", padding: "14px 8px", borderRadius: "12px", border: "none", cursor: "pointer", background: selectedGame === g.id ? g.color + "15" : "#0E0E16", outline: selectedGame === g.id ? "2px solid " + g.color : "1px solid #1A1A24", color: selectedGame === g.id ? g.color : "#52525B", transition: "all 0.2s", display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", fontFamily: "inherit" }}>
+                      <span style={{ fontSize: "20px" }}>{g.icon}</span>
+                      <span style={{ fontSize: "11px", fontWeight: 700 }}>{g.name}</span>
+                      <span style={{ fontSize: "9px", color: selectedGame === g.id ? g.color + "AA" : "#3F3F46" }}>{g.players}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <p style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "2px", color: "#52525B", marginBottom: "10px", fontWeight: 700 }}>Mode</p>
+                <div style={{ display: "flex", gap: "6px", marginBottom: "24px" }}>
+                  {["1v1 Ranked", "Best of 3", "Tournament"].map((mode, i) => (
+                    <button key={mode} style={{ flex: 1, padding: "10px", borderRadius: "10px", border: "none", cursor: i === 0 ? "pointer" : "default", background: i === 0 ? game.color + "15" : "#0E0E16", outline: i === 0 ? "2px solid " + game.color : "1px solid #1A1A24", color: i === 0 ? game.color : "#3F3F46", fontWeight: 600, fontSize: "12px", fontFamily: "inherit", position: "relative" }}>
+                      {mode}
+                      {i > 0 && <span style={{ fontSize: "8px", position: "absolute", top: "4px", right: "6px", color: "#52525B" }}>SOON</span>}
+                    </button>
+                  ))}
+                </div>
+
+                <p style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "2px", color: "#52525B", marginBottom: "10px", fontWeight: 700 }}>Wager Amount</p>
+                <div style={{ display: "flex", gap: "6px", marginBottom: "24px" }}>
+                  {WAGER_AMOUNTS.map((amt) => (
+                    <button key={amt} onClick={() => setWager(amt)} style={{ flex: 1, padding: "12px", borderRadius: "10px", border: "none", cursor: "pointer", background: wager === amt ? game.color : "#0E0E16", color: wager === amt ? "#08080D" : "#71717A", fontWeight: 700, fontSize: "14px", outline: wager === amt ? "none" : "1px solid #1A1A24", transition: "all 0.15s", fontFamily: "inherit" }}>${amt}</button>
+                  ))}
+                </div>
+
+                <div style={{ background: "#0E0E16", borderRadius: "14px", padding: "18px", border: "1px solid #1A1A24", marginBottom: "20px" }}>
+                  {[["Mode", "1v1 Ranked"], ["Your rank", "Diamond II \u2014 1,847 SR"], ["Search range", "\u00B150 SR"], ["Platform fee", "5%"], ["Anti-cheat", "Active \u2014 Replay Verified"]].map(([label, value], i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#52525B", marginBottom: i < 4 ? "10px" : 0 }}>
+                      <span>{label}</span>
+                      <span style={{ color: label === "Anti-cheat" ? "#4ADE80" : "#A1A1AA" }}>{value}</span>
+                    </div>
+                  ))}
+                  <div style={{ height: "1px", background: "#1A1A24", margin: "14px 0" }} />
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "15px", fontWeight: 800 }}>
+                    <span>Win payout</span><span style={{ color: "#4ADE80" }}>${(wager * 2 * 0.95).toFixed(2)}</span>
+                  </div>
+                </div>
+
+                <button onClick={startMatchmaking} style={{ width: "100%", padding: "16px", borderRadius: "12px", border: "none", background: "linear-gradient(135deg, " + game.color + ", " + game.color + "BB)", color: "#08080D", fontWeight: 800, fontSize: "15px", cursor: "pointer", letterSpacing: "0.5px", fontFamily: "inherit", boxShadow: "0 4px 24px " + game.color + "33" }}>
+                  FIND OPPONENT {"\u2014"} ${wager} WAGER
+                </button>
+
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", marginTop: "14px", fontSize: "10px", color: "#3F3F46" }}>
+                  <span>{"\u{1F6E1}\uFE0F"} Anti-cheat</span><span>{"\u00B7"}</span>
+                  <span>{"\u{1F4F9}"} Replay verification</span><span>{"\u00B7"}</span>
+                  <span>{"\u{1F4B8}"} Instant payouts</span><span>{"\u00B7"}</span>
+                  <span>{"\u{1F512}"} Escrow protected</span>
+                </div>
+              </div>
+            )}
+
+            {tab === "play" && view === "matchmaking" && (
+              <div style={{ textAlign: "center", paddingTop: "60px", animation: "slideUp 0.3s ease" }}>
+                {searching ? (
+                  <>
+                    <div style={{ width: "80px", height: "80px", borderRadius: "50%", margin: "0 auto 24px", border: "3px solid " + game.color + "33", borderTopColor: game.color, animation: "spin 1s linear infinite" }} />
+                    <p style={{ fontSize: "18px", fontWeight: 700, marginBottom: "8px" }}>Finding opponent...</p>
+                    <p style={{ fontSize: "13px", color: "#71717A", marginBottom: "4px" }}>Matching within {"\u00B1"}50 SR of your rank</p>
+                    <p style={{ fontSize: "11px", color: "#3F3F46" }}>Estimated wait: ~15 seconds</p>
+                  </>
+                ) : matchedOpponent && (
+                  <>
+                    <p style={{ fontSize: "11px", color: game.color, fontWeight: 700, textTransform: "uppercase", letterSpacing: "2px", marginBottom: "24px" }}>Opponent Found</p>
+                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "28px", marginBottom: "32px" }}>
+                      <div style={{ textAlign: "center" }}>
+                        <div style={{ width: "64px", height: "64px", borderRadius: "50%", background: "linear-gradient(135deg, #6366F1, #A78BFA)", margin: "0 auto 8px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", fontWeight: 800 }}>G</div>
+                        <p style={{ fontWeight: 700, fontSize: "15px" }}>You</p>
+                        <p style={{ fontSize: "11px", color: "#71717A" }}>1,847 SR</p>
+                        <p style={{ fontSize: "10px", color: "#52525B" }}>Diamond II</p>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: "24px", fontWeight: 800, color: game.color, marginBottom: "4px" }}>VS</div>
+                        <div style={{ fontSize: "11px", color: "#52525B" }}>${wager} wager</div>
+                      </div>
+                      <div style={{ textAlign: "center" }}>
+                        <div style={{ width: "64px", height: "64px", borderRadius: "50%", background: "linear-gradient(135deg, #EF4444, #F97316)", margin: "0 auto 8px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px" }}>{matchedOpponent.avatar}</div>
+                        <p style={{ fontWeight: 700, fontSize: "15px" }}>{matchedOpponent.name}</p>
+                        <p style={{ fontSize: "11px", color: "#71717A" }}>{matchedOpponent.rating} SR</p>
+                        <p style={{ fontSize: "10px", color: "#52525B" }}>{matchedOpponent.rank}</p>
+                      </div>
+                    </div>
+                    <div style={{ background: "#0E0E16", borderRadius: "12px", padding: "14px 18px", border: "1px solid #1A1A24", marginBottom: "24px", fontSize: "12px", textAlign: "left", maxWidth: "360px", margin: "0 auto 24px" }}>
+                      {[["Game", game.name], ["Wager", "$" + wager + " each"], ["Opponent record", matchedOpponent.record], ["Win rate", matchedOpponent.winRate], ["Anti-cheat", "\u2705 Verified"]].map(([l, v], i) => (
+                        <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: i < 4 ? "8px" : 0 }}>
+                          <span style={{ color: "#52525B" }}>{l}</span><span>{v}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: "flex", gap: "10px", maxWidth: "360px", margin: "0 auto" }}>
+                      <button onClick={() => { setView("home"); setMatchedOpponent(null); }} style={{ flex: 1, padding: "14px", borderRadius: "10px", border: "1px solid #2A2A3A", background: "transparent", color: "#71717A", fontWeight: 600, fontSize: "13px", cursor: "pointer", fontFamily: "inherit" }}>Decline</button>
+                      <button onClick={() => setView("match")} style={{ flex: 2, padding: "14px", borderRadius: "10px", border: "none", background: game.color, color: "#08080D", fontWeight: 800, fontSize: "13px", cursor: "pointer", fontFamily: "inherit" }}>ACCEPT {"\u2014"} LOCK IN ${wager}</button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {tab === "play" && view === "match" && (
+              <div style={{ textAlign: "center", paddingTop: "60px", animation: "slideUp 0.3s ease" }}>
+                <div style={{ width: "72px", height: "72px", borderRadius: "50%", margin: "0 auto 20px", background: game.color + "15", border: "2px solid " + game.color + "44", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "30px" }}>{"\u2705"}</div>
+                <p style={{ fontSize: "22px", fontWeight: 800, marginBottom: "8px" }}>Match Locked In</p>
+                <p style={{ fontSize: "13px", color: "#71717A", marginBottom: "6px" }}>${wager} held in escrow {"\u00B7"} released to winner</p>
+                <p style={{ fontSize: "13px", color: "#71717A", marginBottom: "32px" }}>Launch {game.name} and invite <span style={{ color: "#E4E4E7", fontWeight: 700 }}>{matchedOpponent?.name}</span></p>
+                <div style={{ background: "#0E0E16", borderRadius: "12px", padding: "16px", border: "1px solid #1A1A24", maxWidth: "320px", margin: "0 auto 24px", fontSize: "12px", textAlign: "left" }}>
+                  <p style={{ fontWeight: 700, marginBottom: "10px", color: "#71717A", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px" }}>Match Rules</p>
+                  <p style={{ color: "#A1A1AA", marginBottom: "6px" }}>{"\u2022"} First to win takes the pot</p>
+                  <p style={{ color: "#A1A1AA", marginBottom: "6px" }}>{"\u2022"} Replay submitted automatically</p>
+                  <p style={{ color: "#A1A1AA", marginBottom: "6px" }}>{"\u2022"} Disputes reviewed within 5 minutes</p>
+                  <p style={{ color: "#A1A1AA" }}>{"\u2022"} Payout instant upon verification</p>
+                </div>
+                <button onClick={() => { setView("home"); setMatchedOpponent(null); }} style={{ padding: "12px 32px", borderRadius: "10px", border: "1px solid #2A2A3A", background: "transparent", color: "#71717A", fontWeight: 600, fontSize: "13px", cursor: "pointer", fontFamily: "inherit" }}>Back to Home</button>
+              </div>
+            )}
+
+            {tab === "leagues" && (
+              <div style={{ animation: "slideUp 0.3s ease" }}>
+                <h2 style={{ fontSize: "20px", fontWeight: 800, marginBottom: "6px" }}>Competitive Leagues</h2>
+                <p style={{ fontSize: "12px", color: "#52525B", marginBottom: "24px" }}>Climb the ranks. Higher leagues unlock bigger wager limits and exclusive tournaments.</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  {LEAGUES.map((league, i) => (
+                    <div key={i} style={{ background: i === 3 ? league.color + "08" : "#0E0E16", borderRadius: "12px", padding: "16px 18px", border: i === 3 ? "2px solid " + league.color + "44" : "1px solid #1A1A24", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <span style={{ fontSize: "24px" }}>{league.icon}</span>
+                        <div>
+                          <p style={{ fontWeight: 700, fontSize: "14px", color: league.color }}>{league.name}</p>
+                          <p style={{ fontSize: "11px", color: "#52525B" }}>{league.range}</p>
+                        </div>
+                      </div>
+                      {i === 3 && <span style={{ fontSize: "10px", fontWeight: 700, padding: "4px 10px", borderRadius: "12px", background: league.color + "22", color: league.color }}>YOUR LEAGUE</span>}
+                      <div style={{ textAlign: "right", fontSize: "11px", color: "#52525B" }}>
+                        <p>Max wager: ${[25, 50, 100, 250, 500][i]}</p>
+                        <p>{["12.1K", "8.4K", "5.2K", "2.1K", "847"][i]} players</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {tab === "leaderboard" && (
+              <div style={{ animation: "slideUp 0.3s ease" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                  <div>
+                    <h2 style={{ fontSize: "20px", fontWeight: 800, marginBottom: "4px" }}>Global Leaderboard</h2>
+                    <p style={{ fontSize: "12px", color: "#52525B" }}>Top earners across all games {"\u00B7"} Updated live</p>
+                  </div>
+                </div>
+                <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-end", gap: "12px", marginBottom: "24px" }}>
+                  {[LEADERBOARD[1], LEADERBOARD[0], LEADERBOARD[2]].map((p, i) => {
+                    const heights = [120, 150, 100];
+                    const colors = ["#C0C0C0", "#FFD700", "#CD7F32"];
+                    const labels = ["2ND", "1ST", "3RD"];
+                    return (
+                      <div key={i} style={{ textAlign: "center", flex: 1 }}>
+                        <p style={{ fontSize: "12px", fontWeight: 700, marginBottom: "6px" }}>{p.name}</p>
+                        <p style={{ fontSize: "10px", color: "#4ADE80", marginBottom: "8px" }}>{p.earnings}</p>
+                        <div style={{ height: heights[i] + "px", borderRadius: "8px 8px 0 0", background: "linear-gradient(180deg, " + colors[i] + "33, " + colors[i] + "11)", border: "1px solid " + colors[i] + "44", borderBottom: "none", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 800, color: colors[i], letterSpacing: "1px" }}>{labels[i]}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ background: "#0E0E16", borderRadius: "12px", border: "1px solid #1A1A24", overflow: "hidden" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "40px 1fr 70px 80px 80px", padding: "10px 16px", fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "#3F3F46", borderBottom: "1px solid #1A1A24" }}>
+                    <span>#</span><span>Player</span><span>SR</span><span>W/L</span><span>Earnings</span>
+                  </div>
+                  {LEADERBOARD.map((p, i) => (
+                    <div key={i} style={{ display: "grid", gridTemplateColumns: "40px 1fr 70px 80px 80px", padding: "12px 16px", fontSize: "12px", borderBottom: i < LEADERBOARD.length - 1 ? "1px solid #1A1A24" : "none", background: i < 3 ? "#12121A" : "transparent" }}>
+                      <span style={{ fontWeight: 700, color: i < 3 ? ["#FFD700", "#C0C0C0", "#CD7F32"][i] : "#52525B" }}>{p.rank}</span>
+                      <span style={{ fontWeight: 600 }}>{p.name}</span>
+                      <span style={{ color: "#A1A1AA" }}>{p.sr}</span>
+                      <span style={{ color: "#71717A" }}>{p.wins}-{p.losses}</span>
+                      <span style={{ color: "#4ADE80", fontWeight: 700 }}>{p.earnings}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {tab === "profile" && (
+              <div style={{ animation: "slideUp 0.3s ease" }}>
+                <div style={{ background: "#0E0E16", borderRadius: "16px", padding: "24px", border: "1px solid #1A1A24", marginBottom: "20px", textAlign: "center" }}>
+                  <div style={{ width: "72px", height: "72px", borderRadius: "50%", background: "linear-gradient(135deg, #6366F1, #A78BFA)", margin: "0 auto 12px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "28px", fontWeight: 800 }}>G</div>
+                  <h2 style={{ fontSize: "20px", fontWeight: 800, marginBottom: "2px" }}>Gosha_17</h2>
+                  <p style={{ fontSize: "12px", color: "#52525B", marginBottom: "16px" }}>Member since April 2026</p>
+                  <div style={{ display: "flex", justifyContent: "center", gap: "24px" }}>
+                    {[["Diamond II", "Rank"], ["1,847", "SR"], ["142-89", "W/L"], ["61%", "Win Rate"]].map(([val, label], i) => (
+                      <div key={i}>
+                        <p style={{ fontWeight: 800, fontSize: "16px", color: i === 0 ? "#B9F2FF" : "#E4E4E7" }}>{val}</p>
+                        <p style={{ fontSize: "10px", color: "#52525B", textTransform: "uppercase", letterSpacing: "1px" }}>{label}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "20px" }}>
+                  {[["$1,247.50", "Total Earnings", "#4ADE80"], ["231", "Matches Played", "#A78BFA"], ["$5.40", "Avg. Profit/Match", "#FBBF24"], ["7", "Win Streak (Best)", "#F87171"]].map(([val, label, color], i) => (
+                    <div key={i} style={{ background: "#0E0E16", borderRadius: "12px", padding: "16px", border: "1px solid #1A1A24" }}>
+                      <p style={{ fontWeight: 800, fontSize: "18px", color, marginBottom: "4px" }}>{val}</p>
+                      <p style={{ fontSize: "10px", color: "#52525B", textTransform: "uppercase", letterSpacing: "1px" }}>{label}</p>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ background: "#0E0E16", borderRadius: "12px", padding: "16px 18px", border: "1px solid #1A1A24" }}>
+                  <p style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: "#52525B", marginBottom: "12px" }}>Connected Accounts</p>
+                  {[["\u{1F3AE}", "Discord", "Gosha#1742", true], ["\u{1F3AF}", "Steam", "Connected", true], ["\u{1F7E2}", "Xbox Live", "Not connected", false], ["\u{1F535}", "PSN", "Not connected", false]].map(([icon, platform, status, connected], i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < 3 ? "1px solid #1A1A24" : "none", fontSize: "12px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span>{icon}</span><span>{platform}</span>
+                      </div>
+                      <span style={{ color: connected ? "#4ADE80" : "#3F3F46", fontSize: "11px" }}>{status}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div style={{ textAlign: "center", padding: "32px 24px 20px", fontSize: "10px", color: "#27272A", borderTop: "1px solid #1A1A24", marginTop: "40px" }}>
+            WAGER.GG {"\u00A9"} 2026 {"\u00B7"} Concept Demo {"\u00B7"} Not a live product {"\u00B7"} All data simulated
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<WagerPlatform />);
+  </script>
+</body>
+</html>
